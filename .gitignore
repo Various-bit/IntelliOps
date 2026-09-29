@@ -1,0 +1,23 @@
+# Секреты / окружение
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/
+env/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+.DS_Store
+
+# Данные / артефакты
+*.log
+.pytest_cache/
+.ipynb_checkpoints/
