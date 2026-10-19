@@ -8,13 +8,13 @@ class Base(BaseModel):
 
 
 class RootCause(str, Enum):
-    """Классы причин. Список ОБЯЗАТЕЛЬНО согласовать с Иваном (разметка) до заморозки."""
-    POWER = "power"                  # питание
-    CONNECTIVITY = "connectivity"    # связь / брокер
-    SENSOR_FAULT = "sensor_fault"    # неисправность датчика
-    INTERFERENCE = "interference"    # помехи / окружение
-    SOFTWARE = "software"            # ПО / конфигурация
-    UNKNOWN = "unknown"              # недостаточно данных
+    """Классы причин (согласованы с Иваном, должны совпадать с разметкой в eval/)."""
+    EQUIPMENT_FAULT = "equipment_fault"  # сломалось оборудование (насос, клапан, привод): отклоняются связанные каналы
+    SENSOR_FAULT = "sensor_fault"        # датчик врёт (в т.ч. помехи), процесс в норме: отклоняется один канал
+    CONNECTIVITY = "connectivity"        # связь / брокер / потери пакетов
+    POWER = "power"                      # питание
+    SOFTWARE = "software"                # ПО / конфигурация
+    UNKNOWN = "unknown"                  # недостаточно данных
 
 
 class Citation(Base):

@@ -21,3 +21,7 @@ env/
 *.log
 .pytest_cache/
 .ipynb_checkpoints/
+
+# Сырые данные
+data/raw/
+data/chroma/

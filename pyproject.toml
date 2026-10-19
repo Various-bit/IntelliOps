@@ -1,0 +1,6 @@
+[tool.pytest.ini_options]
+pythonpath = ["schemas", "."]
+testpaths = ["tests", "schemas/tests"]
+
+[tool.ruff]
+line-length = 120
