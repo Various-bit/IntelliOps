@@ -21,3 +21,6 @@ env/
 *.log
 .pytest_cache/
 .ipynb_checkpoints/
+
+# Downloaded corpus originals can be large or have redistribution restrictions.
+/data/corpus/originals/
