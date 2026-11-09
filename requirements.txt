@@ -3,3 +3,6 @@ pydantic>=2.7
 python-dotenv>=1.0
 pytest
 ruff
+beautifulsoup4>=4.12,<5
+chromadb>=1,<2
+pypdf[fonts]>=6,<7
