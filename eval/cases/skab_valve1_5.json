@@ -1,0 +1,29 @@
+{
+  "case_id": "skab_valve1_5",
+  "incident": {
+    "id": "skab_valve1_5",
+    "device_id": "skab_testbed",
+    "time_start": "2020-03-09T12:04:36",
+    "time_end": "2020-03-09T12:11:36",
+    "description": ""
+  },
+  "source": {
+    "dataset": "SKAB",
+    "file": "valve1/5.csv"
+  },
+  "ground_truth": {
+    "root_cause": "equipment_fault",
+    "gt_source": "SKAB data/README.md: closing pump inlet valve (group valve1); time interval from source CSV anomaly labels; equipment_fault is a provisional mapping of an induced physical operating disturbance, not a confirmed hardware breakage"
+  },
+  "evidence_docs": [
+    {
+      "source_id": "grundfos-cr-manual",
+      "page": null,
+      "note": "Сводка Grundfos CR, раздел о поиске неисправностей: при снижении подачи проверяют ограничения на входе насоса и рабочий режим. Это технический контекст для перекрытия входного клапана из описания SKAB; он не доказывает механическую поломку или то, что в SKAB применялся насос именно этой модели."
+    }
+  ],
+  "annotators": {
+    "primary": "Иван Федоров",
+    "second": null
+  }
+}
