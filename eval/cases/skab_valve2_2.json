@@ -1,0 +1,29 @@
+{
+  "case_id": "skab_valve2_2",
+  "incident": {
+    "id": "skab_valve2_2",
+    "device_id": "skab_testbed",
+    "time_start": "2020-03-09T16:46:31",
+    "time_end": "2020-03-09T16:53:31",
+    "description": ""
+  },
+  "source": {
+    "dataset": "SKAB",
+    "file": "valve2/2.csv"
+  },
+  "ground_truth": {
+    "root_cause": "equipment_fault",
+    "gt_source": "SKAB data/README.md: closing pump outlet valve (group valve2); time interval from source CSV anomaly labels; equipment_fault is a provisional mapping of an induced physical operating disturbance, not a confirmed hardware breakage"
+  },
+  "evidence_docs": [
+    {
+      "source_id": "grundfos-cr-data",
+      "page": null,
+      "note": "Сводка Grundfos CR, раздел о кривых производительности: подача и напор зависят от рабочей точки насосной системы. Это косвенный технический контекст для изменения положения выходного клапана в SKAB, но источник не подтверждает конкретную степень закрытия клапана или неисправность оборудования."
+    }
+  ],
+  "annotators": {
+    "primary": "Иван Федоров",
+    "second": null
+  }
+}

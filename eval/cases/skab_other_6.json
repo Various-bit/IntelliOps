@@ -1,0 +1,29 @@
+{
+  "case_id": "skab_other_6",
+  "incident": {
+    "id": "skab_other_6",
+    "device_id": "skab_testbed",
+    "time_start": "2020-02-08T16:37:09",
+    "time_end": "2020-02-08T16:44:10",
+    "description": ""
+  },
+  "source": {
+    "dataset": "SKAB",
+    "file": "other/6.csv"
+  },
+  "ground_truth": {
+    "root_cause": "equipment_fault",
+    "gt_source": "SKAB data/README.md: linear rotor imbalance (other/6.csv); time interval from source CSV anomaly labels; equipment_fault is a provisional mapping of an induced physical operating disturbance, not a confirmed hardware breakage"
+  },
+  "evidence_docs": [
+    {
+      "source_id": "ifm-vnb001",
+      "page": null,
+      "note": "Сводка даташита ifm VNB001: прибор измеряет скорость вибрации; при изменении вибрации нужно проверять режим работы установки и другие показания. Источник описывает измерение вибрации, но сам по себе не доказывает линейно изменяющийся дисбаланс ротора; тип вмешательства указан в описании SKAB."
+    }
+  ],
+  "annotators": {
+    "primary": "Иван Федоров",
+    "second": "Егор Башев"
+  }
+}

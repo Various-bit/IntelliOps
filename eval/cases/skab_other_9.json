@@ -1,0 +1,29 @@
+{
+  "case_id": "skab_other_9",
+  "incident": {
+    "id": "skab_other_9",
+    "device_id": "skab_testbed",
+    "time_start": "2020-02-08T17:37:18",
+    "time_end": "2020-02-08T17:44:19",
+    "description": ""
+  },
+  "source": {
+    "dataset": "SKAB",
+    "file": "other/9.csv"
+  },
+  "ground_truth": {
+    "root_cause": "equipment_fault",
+    "gt_source": "SKAB data/README.md: exponential rotor imbalance (other/9.csv); time interval from source CSV anomaly labels; equipment_fault is a provisional mapping of an induced physical operating disturbance, not a confirmed hardware breakage"
+  },
+  "evidence_docs": [
+    {
+      "source_id": "ifm-vnb001",
+      "page": null,
+      "note": "Сводка даташита ifm VNB001: прибор измеряет скорость вибрации; изменение вибрации сопоставляют с состоянием насоса. Источник не доказывает экспоненциальный дисбаланс ротора; тип вмешательства указан в описании SKAB."
+    }
+  ],
+  "annotators": {
+    "primary": "Иван Федоров",
+    "second": "Егор Башев"
+  }
+}
