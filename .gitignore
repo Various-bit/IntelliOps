@@ -25,3 +25,6 @@ env/
 # Сырые данные
 data/raw/
 data/chroma/
+
+# Downloaded corpus originals can be large or have redistribution restrictions.
+/data/corpus/originals/
