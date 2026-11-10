@@ -155,6 +155,37 @@ def run_local(
     return result.get("diagnosis")
 
 
+def build_real_graph(nodes: dict[str, Node] | None = None) -> CompiledStateGraph:
+    """Граф с реальными воркерами (#14).
+
+    Telemetry подключён всегда (agent/telemetry). Knowledge Agent подхватывается
+    автоматически, как только будет влит (agent/knowledge с узлом knowledge_node,
+    #22–#24); до тех пор работает заглушка. Supervisor собирает черновик диагноза
+    правилами из findings (agent/supervisor/diagnosis.py).
+    """
+    from agent.supervisor.diagnosis import supervisor_node
+    from agent.telemetry import telemetry_node
+
+    real: dict[str, Node] = {"supervisor": supervisor_node, "telemetry": telemetry_node}
+    try:
+        from agent.knowledge import knowledge_node  # появится после #22–#24
+
+        real["knowledge"] = knowledge_node
+    except ImportError:
+        pass  # Knowledge Agent ещё не влит — остаётся заглушка
+    real.update(nodes or {})
+    return build_graph(real)
+
+
+def run_real(incident: Incident, *, max_steps: int = MAX_STEPS) -> dict[str, Any]:
+    """Прогон инцидента через реальный граф; возвращает состояние (diagnosis, findings, worker_errors).
+
+    Подходит как раннер для eval-харнесса:
+    `python -m eval.run --runner agent.supervisor.graph:run_real`
+    """
+    return build_real_graph().invoke({"incident": incident}, config={"recursion_limit": max_steps})
+
+
 if __name__ == "__main__":
     from datetime import datetime
 
