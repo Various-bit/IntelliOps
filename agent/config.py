@@ -25,6 +25,13 @@ class Settings:
     eval_cases_dir: Path
     database_url: str
     llm_api_key: str
+    llm_model: str
+    llm_base_url: str
+    llm_budget_usd: float
+    langsmith_tracing: bool
+    langsmith_api_key: str
+    langsmith_project: str
+    langsmith_endpoint: str
 
 
 def load_settings(env_file: Path | None = None) -> Settings:
@@ -37,12 +44,22 @@ def load_settings(env_file: Path | None = None) -> Settings:
         raw = os.environ.get(key) or values.get(key) or _PATH_KEYS[key]
         return (base / raw).resolve()
 
+    def s(key: str, default: str = "") -> str:
+        return os.environ.get(key) or values.get(key) or default
+
     return Settings(
         env_file=path,
         data_dir=p("DATA_DIR"),
         corpus_dir=p("CORPUS_DIR"),
         chroma_dir=p("CHROMA_DIR"),
         eval_cases_dir=p("EVAL_CASES_DIR"),
-        database_url=os.environ.get("DATABASE_URL") or values.get("DATABASE_URL") or "",
-        llm_api_key=os.environ.get("LLM_API_KEY") or values.get("LLM_API_KEY") or "",
+        database_url=s("DATABASE_URL"),
+        llm_api_key=s("LLM_API_KEY"),
+        llm_model=s("LLM_MODEL", "gpt-4o-mini"),
+        llm_base_url=s("LLM_BASE_URL", "https://api.openai.com/v1"),
+        llm_budget_usd=float(s("LLM_BUDGET_USD", "1.0")),
+        langsmith_tracing=s("LANGSMITH_TRACING", "false").lower() in {"1", "true", "yes"},
+        langsmith_api_key=s("LANGSMITH_API_KEY"),
+        langsmith_project=s("LANGSMITH_PROJECT", "intelliops"),
+        langsmith_endpoint=s("LANGSMITH_ENDPOINT", "https://api.smith.langchain.com"),
     )
