@@ -10,7 +10,6 @@ from typing import Any
 
 from schemas import Diagnosis, KnowledgeFinding, RootCause, TelemetryFinding
 
-
 LABELS = tuple(member.value for member in RootCause)
 
 

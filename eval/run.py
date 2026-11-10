@@ -16,9 +16,10 @@ import importlib
 import json
 import sys
 from collections import Counter
-from datetime import datetime, timezone
+from collections.abc import Callable
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 # The repository keeps importable `schemas` in `schemas/schemas/`.
 # Ensure the documented `python -m eval.run` works without PYTHONPATH tweaks.
@@ -27,15 +28,15 @@ SCHEMAS_ROOT = str(REPO_ROOT / "schemas")
 if SCHEMAS_ROOT not in sys.path:
     sys.path.insert(0, SCHEMAS_ROOT)
 
-from pydantic import ValidationError  # noqa: E402
-from schemas import Diagnosis, Incident, KnowledgeFinding, RootCause, TelemetryFinding  # noqa: E402
+from pydantic import ValidationError
 
-from eval.metrics import (  # noqa: E402
+from eval.metrics import (
     aggregate_faithfulness,
     cost_metrics,
     faithfulness_for_case,
     root_cause_metrics,
 )
+from schemas import Diagnosis, Incident, KnowledgeFinding, RootCause, TelemetryFinding
 
 
 class CaseError(ValueError):
@@ -173,7 +174,7 @@ def evaluate(
                 faithfulness = faithfulness_for_case(diagnosis, value["knowledge"], value["telemetry"])
                 row["faithfulness"] = faithfulness
                 faithfulness_items.append(faithfulness)
-        except Exception as exc:  # Failed cases are recorded rather than hiding a partial batch.
+        except Exception as exc:  # noqa: BLE001  # Failed cases are recorded rather than hiding a partial batch.
             row["status"] = "error"
             row["error"] = f"{type(exc).__name__}: {exc}"
             errors += 1
@@ -181,7 +182,7 @@ def evaluate(
 
     class_counts = Counter(case["truth"] for case in cases)
     report = {
-        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "generated_at_utc": datetime.now(UTC).isoformat(),
         "mode": mode,
         "stub_warning": (
             "The current main branch graph has only stub agents; metrics are not real model performance."
