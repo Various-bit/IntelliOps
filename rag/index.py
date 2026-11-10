@@ -149,6 +149,12 @@ def main() -> None:
     except ValueError as error:
         parser.exit(1, f"{error}\n")
     print(f"Indexed {files} documents and {chunks} chunks in {settings.chroma_dir}")
+    if not args.originals:
+        print(
+            "ВНИМАНИЕ: агент Knowledge ищет только чанки первоисточников "
+            "(source_kind='original'). Для рабочих цитат соберите индекс командой "
+            "python -m rag.index --originals (оригиналы см. data/corpus/README.md)."
+        )
 
 
 if __name__ == "__main__":

@@ -87,11 +87,26 @@ def analyze_incident(
     return finding
 
 
+def get_collection() -> Collection:
+    """Открывает коллекцию индекса или бросает понятную ошибку, если индекс не собран."""
+    from chromadb.errors import NotFoundError
+
+    settings = load_settings()
+    client = PersistentClient(path=str(settings.chroma_dir))
+    try:
+        return client.get_collection(COLLECTION_NAME)
+    except NotFoundError as exc:
+        raise RuntimeError(
+            "Индекс не собран. Выполните из корня проекта: "
+            "PYTHONPATH=schemas:. python -m rag.index "
+            "(для цитат из первоисточников: python -m rag.index --originals)."
+        ) from exc
+
+
 def knowledge_node(state):
     telemetry = state.get("telemetry")
     channels = tuple(dict.fromkeys(item.series for item in telemetry.evidence)) if telemetry else ()
-    collection = PersistentClient(path=str(load_settings().chroma_dir)).get_collection(COLLECTION_NAME)
-    return {"knowledge": analyze_incident(state["incident"], collection, channels)}
+    return {"knowledge": analyze_incident(state["incident"], get_collection(), channels)}
 
 
 def main() -> None:
