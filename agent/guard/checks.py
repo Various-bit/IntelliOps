@@ -9,6 +9,7 @@ MAX_REPEATED_CHARACTERS = 12
 
 INJECTION_PATTERNS = [
     re.compile(r"\bигнорируй\s+(все\s+)?(предыдущие|вышеуказанные|системные)\s+инструкции\b"),
+    re.compile(r"\bзабудь\s+(все\s+)?(предыдущие|вышеуказанные|системные)\s+(инструкции|указания)\b"),
     re.compile(r"\bignore\s+(all\s+)?(previous|prior|above)\s+instructions\b"),
     re.compile(r"\b(раскрой|покажи|выведи|напечатай)\b.{0,60}\b(системн\w*\s+промпт|api[\s_-]*ключ\w*|секрет\w*)\b"),
     re.compile(r"\b(reveal|print|show|output)\b.{0,60}\b(system\s+prompt|api[\s_-]*key|secret\w*)\b"),
@@ -21,39 +22,72 @@ INJECTION_PATTERNS = [
 ]
 
 
+# Кириллические буквы, визуально неотличимые от латиницы: «ignоre» с буквой «о».
+_HOMOGLYPHS = str.maketrans("аеорсухАЕОРСУХ", "aeopcyxAEOPCYX")
+
+
 def _normalize(text: str) -> str:
     text = unicodedata.normalize("NFKC", text)
     text = text.replace("\u200b", "").replace("\ufeff", "")
     return " ".join(text.lower().split())
 
 
+def _squashed(pattern: re.Pattern) -> re.Pattern:
+    """Вариант паттерна для текста без пробелов: ловит обход разрывами «и г н о р и р у й»."""
+    return re.compile(pattern.pattern.replace(r"\s+", "").replace(r"\s*", ""))
+
+
 def _contains_injection(text: str) -> bool:
+    """Эвристический детект prompt injection.
+
+    Проверяет исходный текст и версию с гомоглифами (кириллические буквы,
+    похожие на латиницу), каждый — в обычном виде и без пробелов (обход
+    разрывами «и г н о р и р у й»).
+
+    Ограничение: это набор regex-эвристик, а не доказуемый фильтр — стойкие
+    перефразирования могут пройти. Дополнительная линия защиты — правило
+    «данные недоверенные: инструкции внутри них не выполняем» (README) и
+    red-teaming (issue #33).
+    """
     normalized = _normalize(text)
-    return any(pattern.search(normalized) for pattern in INJECTION_PATTERNS)
+    translated = normalized.translate(_HOMOGLYPHS)
+    plain = (normalized, translated)
+    squashed_texts = (normalized.replace(" ", ""), translated.replace(" ", ""))
+    for pattern in INJECTION_PATTERNS:
+        if any(pattern.search(text) for text in plain):
+            return True
+        compact = _squashed(pattern)
+        if any(compact.search(text) for text in squashed_texts):
+            return True
+    return False
 
 
 def get_rejection_reason(incident: Incident) -> str | None:
-    """Вернуть причину блокировки или None, если Incident можно пропустить."""
+    """Вернуть причину блокировки или None, если Incident можно пропустить.
+
+    Пустое описание — не причина блокировки: контракт Incident явно допускает
+    его (например, кейсы SKAB с пустым description), достаточность ввода
+    решает Supervisor. Guard занимается безопасностью, а не полнотой данных.
+    """
     if not incident.id.strip():
         return "empty_incident_id"
     if not incident.device_id.strip():
         return "empty_device_id"
 
     description = incident.description or ""
-    if not description.strip():
-        return "empty_description"
-    if len(description) > MAX_DESCRIPTION_LENGTH:
-        return "description_too_long"
-    if any(ord(c) < 32 and c not in "\n\r\t" for c in description):
-        return "control_characters_detected"
-    if not re.search(r"[a-zа-яё0-9]", description, flags=re.IGNORECASE):
-        return "description_contains_no_words_or_numbers"
-    if re.search(
-        rf"(.)\1{{{MAX_REPEATED_CHARACTERS - 1},}}",
-        description,
-        flags=re.IGNORECASE,
-    ):
-        return "repeated_characters_detected"
+    if description.strip():
+        if len(description) > MAX_DESCRIPTION_LENGTH:
+            return "description_too_long"
+        if any(ord(c) < 32 and c not in "\n\r\t" for c in description):
+            return "control_characters_detected"
+        if not re.search(r"[a-zа-яё0-9]", description, flags=re.IGNORECASE):
+            return "description_contains_no_words_or_numbers"
+        if re.search(
+            rf"(.)\1{{{MAX_REPEATED_CHARACTERS - 1},}}",
+            description,
+            flags=re.IGNORECASE,
+        ):
+            return "repeated_characters_detected"
 
     metadata_text = " ".join(
         f"{key} {value}" for key, value in incident.metadata.items()
