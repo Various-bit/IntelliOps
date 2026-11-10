@@ -63,13 +63,15 @@ def test_assemble_diagnosis_with_knowledge_citation():
 
 
 def test_real_graph_survives_missing_data(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
-    """Без CSV телеметрия падает, но граф не роняет: диагноз unknown с честным пояснением."""
+    """Без данных телеметрия падает, индекс knowledge отсутствует — граф всё равно даёт диагноз."""
     monkeypatch.setenv("DATA_DIR", str(tmp_path))
+    monkeypatch.setenv("CHROMA_DIR", str(tmp_path / "empty-chroma"))
     result = run_real(INCIDENT)
     assert result["diagnosis"] is not None
     assert result["diagnosis"].root_cause == RootCause.UNKNOWN
+    # Реальный knowledge_node подхвачен автоматически и честно сообщает об отсутствии индекса.
     assert "telemetry" in result["worker_errors"]
-    assert "knowledge" in result  # заглушка knowledge работает без агента Егора
+    assert "Индекс не собран" in result["worker_errors"].get("knowledge", "")
 
 
 @pytest.mark.skipif(not (SKAB_DATA / "valve1" / "0.csv").exists(), reason="реальные CSV SKAB не скачаны локально")
