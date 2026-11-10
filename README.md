@@ -34,6 +34,7 @@ Incident ──► Guard ──► Supervisor ──► Telemetry Analyst ──
 ```
 agent/{supervisor,telemetry,knowledge,verifier,guard}/   # по папке на агента
 agent/config.py                                          # настройки из .env
+agent/llm.py                                             # единый вызов LLM с учётом токенов и цены
 schemas/                                                 # общие контракты (Pydantic)
 rag/  backend/  eval/  docs/  tests/
 ```
@@ -70,6 +71,17 @@ run_local(incident, nodes={"telemetry": my_telemetry_node})
 ```
 
 Остальные узлы остаются заглушками.
+
+### Граф с реальными воркерами
+
+```python
+from agent.supervisor.graph import run_real
+state = run_real(incident)  # diagnosis + findings + worker_errors
+```
+
+Telemetry — реальный агент, Knowledge подхватывается автоматически после его
+слияния. Через eval-харнесс: `python -m eval.run --runner agent.supervisor.graph:run_real`.
+LLM вызывается только через `get_llm(role)` (`agent/llm.py`, решение — `docs/decisions.md`).
 
 ## Конфигурация (.env)
 
