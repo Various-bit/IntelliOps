@@ -63,3 +63,20 @@ def load_settings(env_file: Path | None = None) -> Settings:
         langsmith_project=s("LANGSMITH_PROJECT", "intelliops"),
         langsmith_endpoint=s("LANGSMITH_ENDPOINT", "https://api.smith.langchain.com"),
     )
+
+
+def configure_langsmith(settings: Settings | None = None) -> bool:
+    """Прокидывает настройки трассировки из .env в окружение (langgraph читает env).
+
+    Вызывается при сборке графа. Возвращает True, если трассировка включена.
+    Уже установленные переменные окружения не перезаписываются.
+    """
+    s = settings or load_settings()
+    if not s.langsmith_tracing:
+        return False
+    os.environ.setdefault("LANGSMITH_TRACING", "true")
+    if s.langsmith_api_key:
+        os.environ.setdefault("LANGSMITH_API_KEY", s.langsmith_api_key)
+    os.environ.setdefault("LANGSMITH_PROJECT", s.langsmith_project)
+    os.environ.setdefault("LANGSMITH_ENDPOINT", s.langsmith_endpoint)
+    return True
