@@ -10,6 +10,7 @@ from __future__ import annotations
 import csv
 import json
 import math
+import os
 import statistics
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -199,15 +200,30 @@ def _generate_fallback_series(
         "metrics": metrics,
         "source_file": source_file,
         "anomaly_group": None if group == "normal" else group,
+        "synthetic": True,
     }
+
+
+def _synthetic_allowed(allow_synthetic: bool | None) -> bool:
+    """Синтетический ряд разрешён только явно: аргументом или env INTELLIOPS_ALLOW_SYNTHETIC=1."""
+    if allow_synthetic is not None:
+        return allow_synthetic
+    return os.environ.get("INTELLIOPS_ALLOW_SYNTHETIC", "").lower() in {"1", "true", "yes"}
 
 
 def get_series(
     device: str,
     time_from: datetime | str,
     time_to: datetime | str,
+    *,
+    allow_synthetic: bool | None = None,
 ) -> dict[str, Any]:
-    """MCP-инструмент: получение временных рядов устройства за интервал [time_from, time_to]."""
+    """MCP-инструмент: получение временных рядов устройства за интервал [time_from, time_to].
+
+    Сначала читается реальный CSV SKAB. Синтетический ряд возвращается только при
+    явном разрешении (allow_synthetic=True или INTELLIOPS_ALLOW_SYNTHETIC=1) и
+    всегда помечается ключом "synthetic": True.
+    """
     start = _parse_dt(time_from)
     end = _parse_dt(time_to)
     if end <= start:
@@ -227,10 +243,18 @@ def get_series(
         if csv_data is not None:
             csv_data["source_file"] = source_file
             csv_data["anomaly_group"] = source_file.split("/")[0] if "/" in source_file else None
+            csv_data["synthetic"] = False
             return csv_data
 
-    # 2. Заглушка для автономных тестов без сети и внешней БД
-    return _generate_fallback_series(device, start, end, source_file=source_file)
+    # 2. Синтетический ряд — только по явному разрешению, чтобы реальные прогоны
+    #    никогда не смешивались с заглушкой.
+    if _synthetic_allowed(allow_synthetic):
+        return _generate_fallback_series(device, start, end, source_file=source_file)
+    raise RuntimeError(
+        f"Нет реальных данных телеметрии для {device} за [{start.isoformat()}, {end.isoformat()}] "
+        f"(source_file={source_file!r}). Скачайте SKAB (python -m data.load_skab) или явно "
+        f"включите синтетику: allow_synthetic=True / INTELLIOPS_ALLOW_SYNTHETIC=1."
+    )
 
 
 def _compute_single_stats(values: list[float]) -> dict[str, float]:

@@ -44,18 +44,25 @@ def _infer_skab_anomaly_type(
     return "other"
 
 
-def analyze_incident(incident: Incident) -> TelemetryFinding:
-    """Проводит анализ телеметрии по инциденту через MCP-инструменты и возвращает TelemetryFinding."""
+def analyze_incident(incident: Incident, *, allow_synthetic: bool | None = None) -> TelemetryFinding:
+    """Проводит анализ телеметрии по инциденту через MCP-инструменты и возвращает TelemetryFinding.
+
+    При явно разрешённой синтетике (allow_synthetic / INTELLIOPS_ALLOW_SYNTHETIC=1)
+    finding помечается как основанный на синтетических данных, а anomaly_type
+    не заполняется: по фейковому ряду нельзя честно определить тип аномалии.
+    """
     series_data = get_series(
         device=incident.device_id,
         time_from=incident.time_start,
         time_to=incident.time_end,
+        allow_synthetic=allow_synthetic,
     )
+    is_synthetic = bool(series_data.get("synthetic"))
     stats_map = get_stats(series_data)
     detection = detect_anomaly(series_data)
 
     anomaly_detected = bool(detection["anomaly_detected"])
-    anomaly_type = _infer_skab_anomaly_type(incident, series_data, detection)
+    anomaly_type = None if is_synthetic else _infer_skab_anomaly_type(incident, series_data, detection)
 
     evidence_list: list[Evidence] = []
     for item in detection.get("anomalous_metrics", [])[:4]:
@@ -79,14 +86,18 @@ def analyze_incident(incident: Incident) -> TelemetryFinding:
             end_dt = min(incident.time_end, datetime.fromisoformat(detection["end"]))
 
         channels_str = ", ".join(e.series for e in evidence_list)
+        type_str = f" типа '{anomaly_type}'" if anomaly_type else ""
         summary = (
-            f"На устройстве {incident.device_id} обнаружена аномалия типа '{anomaly_type}' "
+            f"На устройстве {incident.device_id} обнаружена аномалия{type_str} "
             f"(severity={detection['severity']:.2f}). Отклонения в каналах: {channels_str}."
         )
     else:
         start_dt = None
         end_dt = None
         summary = f"На устройстве {incident.device_id} значимых аномалий телеметрии не обнаружено."
+
+    if is_synthetic:
+        summary = f"[СИНТЕТИЧЕСКИЕ ДАННЫЕ, НЕ ДЛЯ ОЦЕНКИ] {summary}"
 
     finding = TelemetryFinding(
         incident_id=incident.id,
