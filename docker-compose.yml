@@ -1,3 +1,10 @@
+# IntelliOps: весь контур одной командой.
+#
+#   docker compose up -d                 # приложение + TimescaleDB
+#   docker compose --profile setup up    # + разовые job'ы: загрузка SKAB, корпус, индекс
+#
+# Compose читает .env из корня проекта для подстановки ${VAR:-default} —
+# ключи и настройки остаются в .env, в образ они не попадают (.dockerignore).
 services:
   timescaledb:
     image: timescale/timescaledb:latest-pg16
@@ -18,5 +25,59 @@ services:
       timeout: 5s
       retries: 10
 
+  app:
+    build: .
+    image: intelliops-app:latest
+    container_name: intelliops-app
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://intelliops:intelliops@timescaledb:5432/intelliops}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-gpt-4o-mini}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.openai.com/v1}
+      LLM_BUDGET_USD: ${LLM_BUDGET_USD:-1.0}
+      INTELLIOPS_ALLOW_SYNTHETIC: ${INTELLIOPS_ALLOW_SYNTHETIC:-0}
+      LANGSMITH_TRACING: ${LANGSMITH_TRACING:-false}
+    volumes:
+      - skab_data:/app/data/raw
+      - chroma_data:/app/data/chroma
+      - corpus_originals:/app/data/corpus/originals
+    # Демо по умолчанию; полезные команды:
+    #   docker compose run --rm app python -m eval.run --runner agent.supervisor.graph:run_real
+    #   docker compose run --rm app pytest -q
+    command: ["python", "-m", "agent.supervisor.graph"]
+
+  # Разовые job'ы: docker compose --profile setup up
+  loader:
+    build: .
+    image: intelliops-app:latest
+    profiles: ["setup"]
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://intelliops:intelliops@timescaledb:5432/intelliops}
+    volumes:
+      - skab_data:/app/data/raw
+    command: ["python", "-m", "data.load_skab"]
+
+  indexer:
+    build: .
+    image: intelliops-app:latest
+    profiles: ["setup"]
+    environment:
+      INTELLIOPS_ALLOW_SYNTHETIC: ${INTELLIOPS_ALLOW_SYNTHETIC:-0}
+    volumes:
+      - chroma_data:/app/data/chroma
+      - corpus_originals:/app/data/corpus/originals
+    # Сначала качаем первоисточники (idempotent), затем индексируем их.
+    # При первом запуске ChromaDB скачивает локальную эмбеддинг-модель — нужен интернет, ключ не требуется.
+    command: ["sh", "-c", "python -m data.corpus.fetch_originals && python -m rag.index --originals"]
+
 volumes:
   timescale_data:
+  skab_data:
+  chroma_data:
+  corpus_originals:

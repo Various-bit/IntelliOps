@@ -1,0 +1,21 @@
+# VCS и среда
+.git/
+.gitignore
+.venv/
+**/__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache
+.DS_Store
+
+# Секреты — никогда не попадают в образ
+.env
+
+# Данные и артефакты прогонов (монтируются томами или скачиваются внутри)
+data/raw/
+data/chroma/
+data/corpus/originals/
+eval/reports/
+
+# Локальные файлы ревью
+/tmp/

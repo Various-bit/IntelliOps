@@ -116,11 +116,18 @@ def build_index(source_dir: Path, chroma_dir: Path) -> tuple[int, int]:
         raise ValueError(f"Duplicate source IDs in {source_dir}")
 
     chunks = []
+    skipped = []
     for path in files:
         document_chunks = list(chunks_for(path))
         if not document_chunks:
-            raise ValueError(f"No text found in {path}")
+            skipped.append(path.name)
+            continue
         chunks.extend(document_chunks)
+    if skipped:
+        print(f"WARNING: не извлечён текст из {len(skipped)} документов, пропущены: {', '.join(skipped)}")
+    if not chunks:
+        raise ValueError(f"No text found in any document of {source_dir}")
+    return len(files) - len(skipped), len(chunks)
 
     client = chromadb.PersistentClient(path=str(chroma_dir))
     collection = client.get_or_create_collection(COLLECTION_NAME)
