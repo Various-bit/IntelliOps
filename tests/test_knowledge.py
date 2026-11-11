@@ -122,3 +122,26 @@ def test_get_collection_reports_missing_index(monkeypatch, tmp_path):
     monkeypatch.setenv("CHROMA_DIR", str(tmp_path / "empty-chroma"))
     with pytest.raises(RuntimeError, match="Индекс не собран"):
         get_collection()
+
+
+def test_build_index_persists_chunks(tmp_path):
+    """Индекс реально пишется в Chroma: свежий клиент видит коллекцию и чанки."""
+    import chromadb
+
+    from rag.index import COLLECTION_NAME, build_index
+
+    class FakeEmbeddings(chromadb.EmbeddingFunction):
+        def __call__(self, input):
+            return [[0.1] * 384 for _ in input]
+
+    source = tmp_path / "notes"
+    source.mkdir()
+    (source / "doc-a.md").write_text("# A\n\n" + "pump pressure words " * 30, encoding="utf-8")
+    (source / "doc-b.md").write_text("# B\n\n" + "valve flow words " * 30, encoding="utf-8")
+
+    chroma_dir = tmp_path / "chroma"
+    files, chunks = build_index(source, chroma_dir, embedding_function=FakeEmbeddings())
+    assert files == 2 and chunks >= 2
+
+    fresh = chromadb.PersistentClient(path=str(chroma_dir)).get_collection(COLLECTION_NAME)
+    assert fresh.count() == chunks
