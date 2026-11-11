@@ -156,17 +156,23 @@ def run_local(
 
 
 def build_real_graph(nodes: dict[str, Node] | None = None) -> CompiledStateGraph:
-    """Граф с реальными воркерами (#14).
+    """Граф с реальными узлами (#14).
 
-    Telemetry подключён всегда (agent/telemetry). Knowledge Agent подхватывается
-    автоматически, как только будет влит (agent/knowledge с узлом knowledge_node,
-    #22–#24); до тех пор работает заглушка. Supervisor собирает черновик диагноза
-    правилами из findings (agent/supervisor/diagnosis.py).
+    Telemetry и Guard подключены всегда (agent/telemetry, agent/guard). Knowledge
+    Agent подхватывается автоматически, если влит (agent/knowledge с узлом
+    knowledge_node, #22–#24); до тех пор работает заглушка. Supervisor собирает
+    черновик диагноза правилами из findings (agent/supervisor/diagnosis.py).
     """
     from agent.supervisor.diagnosis import supervisor_node
     from agent.telemetry import telemetry_node
 
     real: dict[str, Node] = {"supervisor": supervisor_node, "telemetry": telemetry_node}
+    try:
+        from agent.guard import guard_node
+
+        real["guard"] = guard_node
+    except ImportError:
+        pass  # Guard ещё не влит — остаётся заглушка
     try:
         from agent.knowledge import knowledge_node  # появится после #22–#24
 

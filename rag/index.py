@@ -108,7 +108,7 @@ def chunks_for(path: Path) -> Iterator[Chunk]:
                 break
 
 
-def build_index(source_dir: Path, chroma_dir: Path) -> tuple[int, int]:
+def build_index(source_dir: Path, chroma_dir: Path, *, embedding_function=None) -> tuple[int, int]:
     files = sorted(path for path in source_dir.glob("*") if path.is_file() and path.suffix.lower() in FORMATS)
     if not files:
         raise ValueError(f"No Markdown, PDF or HTML documents found in {source_dir}")
@@ -116,14 +116,20 @@ def build_index(source_dir: Path, chroma_dir: Path) -> tuple[int, int]:
         raise ValueError(f"Duplicate source IDs in {source_dir}")
 
     chunks = []
+    skipped = []
     for path in files:
         document_chunks = list(chunks_for(path))
         if not document_chunks:
-            raise ValueError(f"No text found in {path}")
+            skipped.append(path.name)
+            continue
         chunks.extend(document_chunks)
+    if skipped:
+        print(f"WARNING: не извлечён текст из {len(skipped)} документов, пропущены: {', '.join(skipped)}")
+    if not chunks:
+        raise ValueError(f"No text found in any document of {source_dir}")
 
     client = chromadb.PersistentClient(path=str(chroma_dir))
-    collection = client.get_or_create_collection(COLLECTION_NAME)
+    collection = client.get_or_create_collection(COLLECTION_NAME, embedding_function=embedding_function)
     old_ids = set(collection.get(include=[])["ids"])
     for start in range(0, len(chunks), BATCH_SIZE):
         batch = chunks[start : start + BATCH_SIZE]
@@ -135,7 +141,7 @@ def build_index(source_dir: Path, chroma_dir: Path) -> tuple[int, int]:
     stale_ids = sorted(old_ids - {chunk.id for chunk in chunks})
     for start in range(0, len(stale_ids), BATCH_SIZE):
         collection.delete(ids=stale_ids[start : start + BATCH_SIZE])
-    return len(files), len(chunks)
+    return len(files) - len(skipped), len(chunks)
 
 
 def main() -> None:
